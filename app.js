@@ -1,7 +1,7 @@
 import { startCamera, stopCamera, RepCounter } from './pose.js';
 
 const $ = id => document.getElementById(id);
-const COLORS = { body: '#f1e4d3', bodyFar: '#b8a994', torso: '#ff5a36', shorts: '#3a342d', hair: '#3a2a20', bell: '#55585e', bellShine: '#8f949b', shadow: 'rgba(0,0,0,.35)' };
+const COLORS = { body: '#f1e4d3', bodyFar: '#b8a994', torso: '#ff5a36', shorts: '#3a342d', hair: '#3a2a20', bell: '#55585e', bellShine: '#8f949b', shadow: 'rgba(0,0,0,.35)', ghost: 'rgba(241,228,211,.16)', path: 'rgba(255,90,54,.75)' };
 const QUOTES = [
   'Ten minutes now, a better day all day.',
   'Small moves, every day. That is the whole secret.',
@@ -138,9 +138,11 @@ function nextWork(from) { for (let j = from; j < S.steps.length; j++) if (S.step
 
 function enterStep() {
   const st = curStep();
+  const shown = EX[st.phase === 'work' ? st.id : nextWork(S.i + 1).id];
+  $('stage').classList.toggle('stack', !!shown.keys[0].floor);
   S.t = 0; S.said = {};
   const prev = S.steps[S.i - 1];
-  S.ready = st.phase === 'work' && !(prev && prev.phase === 'rest') ? S.r.getReady : 0;
+  S.ready = st.phase === 'work' && !(prev && prev.phase === 'rest') ? (st.ready || S.r.getReady) : 0;
   if (st.phase === 'work') {
     const ex = EX[st.id];
     S.counter = new RepCounter(ex.metric, ex.tempo);
@@ -211,7 +213,7 @@ function tick(now) {
     const exId = st.phase === 'work' ? st.id : nextWork(S.i + 1).id;
     const ex = EX[exId];
     const mirrored = ex.sides && st.phase === 'work' && S.t > st.dur / 2;
-    drawFigure(ctx, w, h, poseAt(ex, S.paused ? 0 : now / 1000, mirrored), COLORS, extent(ex));
+    drawCoach(ctx, w, h, ex, S.paused ? 0 : now / 1000, mirrored, COLORS);
   }
   const left = Math.max(0, Math.ceil(st.dur - S.t));
   $('time').textContent = left;

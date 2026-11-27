@@ -57,9 +57,20 @@ function solve(p) {
   const Kl = add(Hl, dirDown(p.lt), L.thigh), Fl = add(Kl, dirDown(p.ls), L.shin);
   const Kr = add(Hr, dirDown(p.rt), L.thigh), Fr = add(Kr, dirDown(p.rs), L.shin);
   const pts = { P0, M, N, Sl, Sr, Hl, Hr, head, El, Wl, Er, Wr, Kl, Fl, Kr, Fr };
-  // Plant the feet: lowest foot on the ground, feet centred.
-  const gy = Math.max(Fl[1], Fr[1]);
-  const gx = (Fl[0] + Fr[0]) / 2;
+  let gy, gx;
+  if (p.floor) {
+    // Floor moves: whatever is lowest touches the ground, body centred on the hips.
+    gy = -Infinity;
+    for (const k in pts) {
+      const r = k === 'head' ? L.headR : ['P0', 'M', 'N', 'Sl', 'Sr', 'Hl', 'Hr'].includes(k) ? 0.055 : 0.028;
+      gy = Math.max(gy, pts[k][1] + r);
+    }
+    gx = P0[0] + 0.07;
+  } else {
+    // Standing moves: lowest foot on the ground, feet centred.
+    gy = Math.max(Fl[1], Fr[1]);
+    gx = (Fl[0] + Fr[0]) / 2;
+  }
   for (const k in pts) pts[k] = [pts[k][0] - gx, pts[k][1] - gy];
   return pts;
 }
@@ -67,7 +78,7 @@ function solve(p) {
 // Size of the space an exercise needs, so the figure fills its panel.
 function extent(ex) {
   if (ex._ext) return ex._ext;
-  let xm = 0.22, ym = 0.9;
+  let xm = 0.22, ym = ex.keys[0].floor ? 0.25 : 0.9;
   const poses = [];
   for (let i = 0; i < 16; i++) { const p = poseAt(ex, i * ex.tempo / 16, false); poses.push(p); if (ex.sides) poses.push(mirrorPose(p)); }
   poses.forEach(p => { const pts = solve(p); for (const k in pts) { xm = Math.max(xm, Math.abs(pts[k][0]) + 0.08); ym = Math.max(ym, -pts[k][1] + 0.1); } });
@@ -75,13 +86,18 @@ function extent(ex) {
   return ex._ext;
 }
 
-function drawFigure(ctx, w, h, pose, colors, ext) {
-  const pts = solve(pose);
+function frameFor(w, h, ext) {
   const e = ext || { xm: 0.39, ym: 1.05 };
   const s = Math.min(h * 0.93 / e.ym, w / (2 * e.xm));
-  const ox = w / 2, oy = h * 0.94;
+  const oy = e.ym < 0.6 ? h * 0.5 + e.ym * s * 0.5 : h * 0.94;
+  return { s, ox: w / 2, oy };
+}
+
+function drawFigure(ctx, w, h, pose, colors, ext, keep) {
+  const pts = solve(pose);
+  const { s, ox, oy } = frameFor(w, h, ext);
   const X = p => [ox + p[0] * s, oy + p[1] * s];
-  ctx.clearRect(0, 0, w, h);
+  if (!keep) ctx.clearRect(0, 0, w, h);
 
   // floor shadow
   ctx.fillStyle = colors.shadow;
@@ -163,4 +179,32 @@ function drawFigure(ctx, w, h, pose, colors, ext) {
   if (!side) limbArm(pts.Sl, pts.El, pts.Wl, colors.body);
   limbArm(pts.Sr, pts.Er, pts.Wr, colors.body);
   if (bp && !pose.bellBehind) bell(bp);
+}
+
+// Coach view: faint outlines of the key positions, the path of the hands
+// (or kettlebell) and feet, then the moving figure on top.
+function drawCoach(ctx, w, h, ex, time, mirrored, colors) {
+  const ext = extent(ex);
+  ctx.clearRect(0, 0, w, h);
+  const ghost = Object.assign({}, colors, { body: colors.ghost, bodyFar: colors.ghost, torso: colors.ghost, shorts: colors.ghost, hair: colors.ghost, bell: colors.ghost, bellShine: colors.ghost, shadow: 'rgba(0,0,0,0)' });
+  ctx.save(); ctx.globalAlpha = 0.5;
+  ex.keys.forEach(k => drawFigure(ctx, w, h, mirrored ? mirrorPose(k) : k, ghost, ext, true));
+  ctx.restore();
+  // movement path
+  const { s, ox, oy } = frameFor(w, h, ext);
+  const N = 40, paths = { Wr: [], Wl: [], Fr: [], Fl: [], head: [] };
+  for (let i = 0; i <= N; i++) {
+    const pts = solve(poseAt(ex, i * ex.tempo / N, mirrored));
+    for (const k in paths) paths[k].push([ox + pts[k][0] * s, oy + pts[k][1] * s]);
+  }
+  ctx.save();
+  ctx.setLineDash([4, 6]); ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.strokeStyle = colors.path;
+  for (const k in paths) {
+    const pth = paths[k];
+    let len = 0; for (let i = 1; i < pth.length; i++) len += Math.hypot(pth[i][0] - pth[i - 1][0], pth[i][1] - pth[i - 1][1]);
+    if (len < s * 0.12) continue;          // only joints that really travel
+    ctx.beginPath(); pth.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.stroke();
+  }
+  ctx.restore();
+  drawFigure(ctx, w, h, poseAt(ex, time, mirrored), colors, ext, true);
 }

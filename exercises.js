@@ -124,6 +124,52 @@ const EX = {
     ]
   },
 
+  // ---------- Floor work for the back ----------
+  catCowFloor: {
+    name: 'Cat cow', tempo: 5, metric: 'none', src: IG.mobility,
+    cues: ['Hands under shoulders, knees under hips.', 'Breathe out and round the back to the ceiling.', 'Breathe in, let the belly drop and look forward.'],
+    keys: [
+      P(SIDE, { floor: true, t: 62, u: 96, h: 140, ra: 0, rf: 0, la: 0, lf: 0, rt: 0, rs: -90, lt: 0, ls: -90 }),
+      P(SIDE, { floor: true, t: 88, u: 64, h: 60, ra: 0, rf: 0, la: 0, lf: 0, rt: 0, rs: -90, lt: 0, ls: -90 })
+    ]
+  },
+  birdDog: {
+    name: 'Bird dog', tempo: 6, metric: 'none', src: IG.core,
+    cues: ['On all fours, back flat like a table.', 'Reach one arm forward and the opposite leg back.', 'Slow and steady, hips stay level.'],
+    keys: [
+      P(SIDE, { floor: true, t: 76, u: 76, h: 105, ra: 0, rf: 0, la: 0, lf: 0, rt: 0, rs: -90, lt: 0, ls: -90 }),
+      P(SIDE, { floor: true, t: 76, u: 76, h: 100, ra: 100, rf: 100, la: 0, lf: 0, rt: 0, rs: -90, lt: -82, ls: -82 }),
+      P(SIDE, { floor: true, t: 76, u: 76, h: 105, ra: 0, rf: 0, la: 0, lf: 0, rt: 0, rs: -90, lt: 0, ls: -90 }),
+      P(SIDE, { floor: true, t: 76, u: 76, h: 100, ra: 0, rf: 0, la: 100, lf: 100, rt: -82, rs: -82, lt: 0, ls: -90 })
+    ]
+  },
+  deadBug: {
+    name: 'Dead bug', tempo: 6, metric: 'none', src: IG.core,
+    cues: ['On your back, arms to the ceiling, knees over hips.', 'Lower one arm and the opposite leg towards the floor.', 'Press the lower back into the floor the whole time.'],
+    keys: [
+      P(SIDE, { floor: true, t: 90, u: 90, h: 90, ra: 178, rf: 178, la: 182, lf: 182, rt: 180, rs: -90, lt: 180, ls: -90 }),
+      P(SIDE, { floor: true, t: 90, u: 90, h: 90, ra: 105, rf: 102, la: 182, lf: 182, rt: 180, rs: -90, lt: -100, ls: -96 }),
+      P(SIDE, { floor: true, t: 90, u: 90, h: 90, ra: 178, rf: 178, la: 182, lf: 182, rt: 180, rs: -90, lt: 180, ls: -90 }),
+      P(SIDE, { floor: true, t: 90, u: 90, h: 90, ra: 178, rf: 178, la: 105, lf: 102, rt: -100, rs: -96, lt: 180, ls: -90 })
+    ]
+  },
+  bridge: {
+    name: 'Glute bridge', tempo: 4, metric: 'none', src: IG.tenmin,
+    cues: ['On your back, feet flat, knees bent.', 'Squeeze the glutes and lift the hips.', 'Hold one second at the top, lower slowly.'],
+    keys: [
+      P(SIDE, { floor: true, t: 90, u: 90, h: 90, ra: -90, rf: -90, la: -90, lf: -90, rt: -140, rs: 12, lt: -140, ls: 12 }),
+      P(SIDE, { floor: true, t: 112, u: 104, h: 95, ra: -96, rf: -90, la: -96, lf: -90, rt: -108, rs: 2, lt: -108, ls: 2 })
+    ]
+  },
+  kneeHug: {
+    name: 'Knee hugs', tempo: 5, metric: 'none', src: IG.mobility,
+    cues: ['On your back, hug both knees to your chest.', 'Gently rock side to side if it feels good.', 'Let the lower back melt into the floor.'],
+    keys: [
+      P(SIDE, { floor: true, t: 90, u: 90, h: 90, ra: -120, rf: -100, la: -122, lf: -102, rt: 145, rs: -60, lt: 145, ls: -60 }),
+      P(SIDE, { floor: true, t: 90, u: 90, h: 90, ra: -128, rf: -108, la: -130, lf: -110, rt: 160, rs: -75, lt: 165, ls: -75 })
+    ]
+  },
+
   // ---------- Kettlebell ----------
   halo: {
     name: 'Kettlebell halo', tempo: 3.2, metric: 'none', src: IG.kb9, kb: true,
@@ -239,11 +285,13 @@ const EX = {
 
 const ROUTINES = {
   morning: {
-    id: 'morning', title: 'Morning flow', sub: 'Mobility, lymph and lower back', when: 'Before the shower',
+    id: 'morning', title: 'Morning flow', sub: 'Mobility, lymph, then floor work for the back', when: 'Before the shower',
     getReady: 5, rest: 0,
     blocks: [
       ['bounce', 60], ['bounceTwist', 50], ['armsUp', 50], ['twist', 50], ['wave', 45],
-      ['sideReach', 50], ['catCow', 50], ['goodMorning', 50], ['lateralLunge', 50], ['plie', 50], ['breathe', 45]
+      ['sideReach', 50], ['goodMorning', 50], ['lateralLunge', 50], ['plie', 50],
+      ['catCowFloor', 50, 12], ['birdDog', 60], ['deadBug', 60], ['bridge', 50], ['kneeHug', 45],
+      ['breathe', 40, 10]
     ]
   },
   office1: {
@@ -276,8 +324,8 @@ function buildSteps(routine) {
       }
       i = end + 1;
     } else {
-      const [id, d] = b[i];
-      out.push({ id, dur: d, phase: 'work' });
+      const [id, d, ready] = b[i];
+      out.push({ id, dur: d, phase: 'work', ready });
       i++;
     }
   }
@@ -286,5 +334,5 @@ function buildSteps(routine) {
 
 function routineSeconds(routine) {
   const steps = buildSteps(routine);
-  return steps.reduce((s, st, i) => s + st.dur + (st.phase === 'work' && !(steps[i - 1] && steps[i - 1].phase === 'rest') ? routine.getReady : 0), 0);
+  return steps.reduce((s, st, i) => s + st.dur + (st.phase === 'work' && !(steps[i - 1] && steps[i - 1].phase === 'rest') ? (st.ready || routine.getReady) : 0), 0);
 }

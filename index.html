@@ -65,8 +65,9 @@ h1,h2,.num{font-family:'Barlow Condensed',Barlow,sans-serif;font-weight:800;line
 .phase{font-family:'Barlow Condensed',Barlow,system-ui,sans-serif;font-weight:600;color:var(--acc);font-size:17px;letter-spacing:.4px}
 .exname{font-size:clamp(30px,8.5vw,46px);text-wrap:balance}
 .x{width:44px;height:44px;border-radius:50%;background:var(--bg2);font-size:22px;flex:none}
-.stage{flex:1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin:10px 0;min-height:0}
+.stage{flex:1;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:8px;margin:10px 0;min-height:0}
 .stage.nocam{grid-template-columns:minmax(0,1fr)}
+.stage.stack{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1.15fr) minmax(0,1fr)}
 .panel{position:relative;background:var(--bg2);border-radius:22px;overflow:hidden;min-height:0}
 .panel canvas.fig{position:absolute;inset:0;width:100%;height:100%}
 .panel video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
@@ -77,11 +78,11 @@ h1,h2,.num{font-family:'Barlow Condensed',Barlow,sans-serif;font-weight:800;line
 .hint{position:absolute;left:10px;right:10px;bottom:10px;background:rgba(22,19,15,.85);border-radius:14px;padding:8px 10px;font-size:14px;z-index:3;display:none}
 .camoff{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:16px;color:var(--mute);font-size:15px}
 .bottom{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center}
-.clock{position:relative;width:118px;height:118px}
+.clock{position:relative;width:104px;height:104px}
 .clock svg{width:100%;height:100%;transform:rotate(-90deg)}
-.clock .num{position:absolute;inset:0;display:grid;place-items:center;font-size:52px}
-.cue{font-size:19px;line-height:1.3;font-weight:500;min-height:3.9em}
-.next{color:var(--mute);font-size:14px;margin-top:4px}
+.clock .num{position:absolute;inset:0;display:grid;place-items:center;font-size:46px}
+.cue{font-size:24px;line-height:1.25;font-weight:600;min-height:3.75em}
+.next{color:var(--mute);font-size:17px;margin-top:6px}
 .ctrls{display:flex;gap:10px;margin-top:12px}
 .ctrls button{flex:1;min-height:56px;border-radius:18px;background:var(--bg2);font-weight:600;font-size:17px}
 .ctrls .main{background:var(--acc);color:#fff;flex:1.4}
@@ -99,7 +100,7 @@ h1,h2,.num{font-family:'Barlow Condensed',Barlow,sans-serif;font-weight:800;line
 #done button{margin-top:18px;background:var(--acc);color:#fff;border-radius:18px;min-height:56px;padding:0 34px;font-weight:600;font-size:18px}
 
 @media (orientation:landscape) and (max-height:600px){
-  .exname{font-size:30px}.clock{width:84px;height:84px}.clock .num{font-size:38px}.cue{min-height:0;font-size:16px}
+  .exname{font-size:30px}.clock{width:84px;height:84px}.clock .num{font-size:38px}.cue{min-height:0;font-size:20px}
   #player{display:none}#player.on{display:grid;grid-template-columns:1.6fr 1fr;grid-template-rows:auto 1fr;column-gap:14px}
   #player .top{grid-column:1/3}#player .stage{grid-row:2;margin:6px 0 0}#player .side{grid-row:2;display:flex;flex-direction:column;justify-content:center}
 }
