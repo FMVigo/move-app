@@ -64,9 +64,9 @@ const EX = {
     cues: ['Roll from the knees, to the hips, to the chest.', 'Slow and smooth like a wave.', 'This resets the nervous system.'],
     keys: [
       P(SIDE, {}),
-      P(SIDE, { rt: 22, rs: -12, lt: 22, ls: -12, t: -10, u: -4, la: -10, ra: -6 }),
-      P(SIDE, { rt: 12, rs: -6, lt: 12, ls: -6, t: 8, u: 18, h: 14, la: 8, ra: 12 }),
-      P(SIDE, { t: 2, u: 4 })
+      P(SIDE, { u: 20, t: 2, h: 12, la: 6, ra: 10 }),
+      P(SIDE, { t: -12, u: -6, h: 0, rt: 18, rs: -14, lt: 18, ls: -14, la: -12, ra: -8 }),
+      P(SIDE, { t: 18, u: 8, h: 6, rt: 26, rs: -16, lt: 26, ls: -16, la: 4, ra: 8 })
     ]
   },
   sideReach: {
@@ -74,9 +74,9 @@ const EX = {
     cues: ['Reach long over the top.', 'Feel the side of the lower back open.', 'Keep both feet heavy.'],
     keys: [
       P(FRONT, {}),
-      P(FRONT, { t: -6, u: -24, h: -26, ra: -168, rf: -150, la: -10, lf: -20 }),
+      P(FRONT, { t: -8, u: -32, h: -30, ra: -165, rf: -140, la: -14, lf: -24 }),
       P(FRONT, {}),
-      P(FRONT, { t: 6, u: 24, h: 26, la: 168, lf: 150, ra: 10, rf: 20 })
+      P(FRONT, { t: 8, u: 32, h: 30, la: 165, lf: 140, ra: 14, rf: 24 })
     ]
   },
   catCow: {
@@ -194,17 +194,17 @@ const EX = {
     cues: ['Hike the bell back like a football.', 'Snap the hips, stand tall.', 'The hips do the work, not the arms.'],
     keys: [
       P(SIDE, { t: -2, u: -2, ra: 88, rf: 90, la: 84, lf: 86, bell: 'both' }),
-      P(SIDE, { t: 38, u: 40, h: 40, rt: 14, rs: -6, lt: 14, ls: -6, ra: 30, rf: 30, la: 26, lf: 26, bell: 'both' }),
-      P(SIDE, { t: 68, u: 66, h: 55, rt: 22, rs: -10, lt: 22, ls: -10, ra: -28, rf: -38, la: -32, lf: -42, bell: 'both' }),
-      P(SIDE, { t: 32, u: 32, h: 30, rt: 12, rs: -5, lt: 12, ls: -5, ra: 40, rf: 42, la: 36, lf: 38, bell: 'both' })
+      P(SIDE, { t: 36, u: 38, h: 40, rt: 14, rs: -6, lt: 14, ls: -6, ra: 28, rf: 26, la: 24, lf: 22, bell: 'both' }),
+      P(SIDE, { t: 70, u: 68, h: 58, rt: 24, rs: -12, lt: 24, ls: -12, ra: -48, rf: -56, la: -52, lf: -60, bell: 'both' }),
+      P(SIDE, { t: 36, u: 36, h: 32, rt: 14, rs: -6, lt: 14, ls: -6, ra: 34, rf: 36, la: 30, lf: 32, bell: 'both' })
     ]
   },
   row: {
     name: 'Single arm row', tempo: 2.4, metric: 'wristY', src: IG.kb9, kb: true, sides: true,
     cues: ['Hinge forward, free hand on your thigh.', 'Pull the elbow to your back pocket.', 'Flat back the whole time.'],
     keys: [
-      P(SIDE, { t: 52, u: 54, h: 60, rt: 26, rs: -10, lt: -8, ls: -2, la: 40, lf: 30, ra: 0, rf: 0, bell: 'R' }),
-      P(SIDE, { t: 52, u: 54, h: 60, rt: 26, rs: -10, lt: -8, ls: -2, la: 40, lf: 30, ra: -128, rf: 0, bell: 'R' })
+      P(SIDE, { t: 52, u: 54, h: 60, rt: 30, rs: -10, lt: -12, ls: -4, la: 14, lf: 4, ra: 0, rf: 0, bell: 'R' }),
+      P(SIDE, { t: 52, u: 54, h: 60, rt: 30, rs: -10, lt: -12, ls: -4, la: 14, lf: 4, ra: -128, rf: 0, bell: 'R' })
     ]
   },
   press: {
@@ -269,16 +269,16 @@ const EX = {
     name: 'Forward fold', tempo: 6, metric: 'none', src: IG.mobility,
     cues: ['Soft knees, let the head hang.', 'Breathe into the lower back.', 'Roll up slowly when ready.'],
     keys: [
-      P(SIDE, { t: 76, u: 92, h: 120, rt: 10, rs: -6, lt: 10, ls: -6, ra: 0, rf: 0, la: 4, lf: 4 }),
-      P(SIDE, { t: 82, u: 100, h: 130, rt: 12, rs: -8, lt: 12, ls: -8, ra: 4, rf: 4, la: 8, lf: 8 })
+      P(SIDE, { t: 112, u: 140, h: 165, rt: 12, rs: -8, lt: 12, ls: -8, ra: 2, rf: 4, la: 6, lf: 8 }),
+      P(SIDE, { t: 120, u: 150, h: 172, rt: 16, rs: -10, lt: 16, ls: -10, ra: 4, rf: 6, la: 8, lf: 10 })
     ]
   },
   hipFlexor: {
     name: 'Hip flexor stretch', tempo: 5, metric: 'none', src: IG.mobility, sides: true,
-    cues: ['Long stance, back heel up.', 'Tuck the tail and squeeze the back glute.', 'Feel the front of the hip open.'],
+    cues: ['Big step forward, front knee over the ankle.', 'Tuck the tail and squeeze the back glute.', 'Reach up tall, feel the front of the hip open.'],
     keys: [
-      P(SIDE, { rt: 40, rs: -6, lt: -30, ls: -34, t: -4, u: -2, ra: 140, rf: 170, la: 136, lf: 168 }),
-      P(SIDE, { rt: 52, rs: -10, lt: -36, ls: -42, t: -8, u: -6, ra: 150, rf: 175, la: 146, lf: 172 })
+      P(SIDE, { rt: 72, rs: -4, lt: -42, ls: -62, t: -2, u: -2, ra: 172, rf: 176, la: 168, lf: 174 }),
+      P(SIDE, { rt: 82, rs: -8, lt: -50, ls: -72, t: -8, u: -10, h: -6, ra: 176, rf: 182, la: 172, lf: 178 })
     ]
   }
 };
