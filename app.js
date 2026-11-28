@@ -74,6 +74,13 @@ function animateHome(ts) {
 }
 $('setVoice').onclick = () => { settings.voice = !settings.voice; store.set('settings', settings); renderHome(); };
 $('setCam').onclick = () => { settings.cam = !settings.cam; store.set('settings', settings); renderHome(); };
+$('testVoice').onclick = () => {
+  audioOn(); beep(880, 0.1);
+  if (!('speechSynthesis' in window)) return;
+  const was = settings.voice; settings.voice = true;
+  say('Hi Francisco. This is your coach. If you can hear me, the voice is working.', true);
+  settings.voice = was;
+};
 $('setKb').onclick = () => { const o = [8, 12, 14, 16, 20, 24]; settings.kb = o[(o.indexOf(settings.kb) + 1) % o.length]; store.set('settings', settings); renderHome(); };
 
 function show(id) {
@@ -88,13 +95,18 @@ function pickVoice() {
   voice = vs.find(v => /en-GB/.test(v.lang) && /Daniel|Arthur|Serena|Kate/.test(v.name)) || vs.find(v => /en-GB/.test(v.lang)) || vs.find(v => /^en/.test(v.lang)) || null;
 }
 if ('speechSynthesis' in window) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+// Let sound play even when the iPhone's silent switch is on (Safari 16.4 and later).
+function audioOn() { try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { } }
 function say(text, interrupt) {
   if (!settings.voice || !('speechSynthesis' in window)) return;
-  if (interrupt) speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
   if (voice) u.voice = voice;
-  u.rate = 1.02; u.pitch = 1;
-  speechSynthesis.speak(u);
+  u.lang = voice ? voice.lang : 'en-GB';
+  u.rate = 1.02; u.pitch = 1; u.volume = 1;
+  const go = () => { try { speechSynthesis.resume(); } catch (e) { } speechSynthesis.speak(u); };
+  // Safari can drop speech that starts straight after a cancel, so leave a short gap.
+  if (interrupt && (speechSynthesis.speaking || speechSynthesis.pending)) { speechSynthesis.cancel(); setTimeout(go, 150); }
+  else go();
 }
 function beep(f = 880, d = 0.12) {
   try {
@@ -147,9 +159,9 @@ function startSession(id) {
   trackingOff = false;
   S = { r, steps, i: 0, t: 0, ready: r.getReady, paused: false, last: performance.now(), anim: 0, said: {}, counter: null, total: steps.reduce((s, x) => s + x.dur, 0), elapsed: 0 };
   // warm up audio and speech inside the tap
+  audioOn();
   beep(660, 0.05);
-  if ('speechSynthesis' in window) speechSynthesis.cancel();
-  say(r.id === 'morning' ? 'Good morning Francisco. Ten minutes for your body. Let\'s go.' : 'Kettlebell time. Quick and strong between meetings. Let\'s go.');
+  say(r.id === 'morning' ? 'Good morning Francisco. Time to wake up your body. Let\'s go.' : 'Kettlebell time. Quick and strong between meetings. Let\'s go.');
   try { navigator.wakeLock && navigator.wakeLock.request('screen').then(l => wakeLock = l).catch(() => { }); } catch (e) { }
   $('stage').classList.toggle('nocam', !settings.cam);
   $('camPanel').style.display = settings.cam ? '' : 'none';
