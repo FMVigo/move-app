@@ -75,11 +75,15 @@ function animateHome(ts) {
 $('setVoice').onclick = () => { settings.voice = !settings.voice; store.set('settings', settings); renderHome(); };
 $('setCam').onclick = () => { settings.cam = !settings.cam; store.set('settings', settings); renderHome(); };
 $('testVoice').onclick = () => {
-  audioOn(); beep(880, 0.1);
-  if (!('speechSynthesis' in window)) return;
+  const out = $('voiceMsg');
+  out.style.display = 'block';
+  if (!('speechSynthesis' in window)) { out.textContent = 'This browser has no voice support.'; return; }
+  out.textContent = 'Testing the voice…';
   const was = settings.voice; settings.voice = true;
-  say('Hi Francisco. This is your coach. If you can hear me, the voice is working.', true);
+  voiceStatus = m => { out.textContent = m; };
+  say('Hi Francisco. This is your coach. If you can hear me, the voice is working.');
   settings.voice = was;
+  setTimeout(() => { voiceStatus = null; }, 3000);
 };
 $('setKb').onclick = () => { const o = [8, 12, 14, 16, 20, 24]; settings.kb = o[(o.indexOf(settings.kb) + 1) % o.length]; store.set('settings', settings); renderHome(); };
 
@@ -97,13 +101,22 @@ function pickVoice() {
 if ('speechSynthesis' in window) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
 // Let sound play even when the iPhone's silent switch is on (Safari 16.4 and later).
 function audioOn() { try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { } }
+const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+let voiceStatus = null;
 function say(text, interrupt) {
   if (!settings.voice || !('speechSynthesis' in window)) return;
   const u = new SpeechSynthesisUtterance(text);
-  if (voice) u.voice = voice;
-  u.lang = voice ? voice.lang : 'en-GB';
-  u.rate = 1.02; u.pitch = 1; u.volume = 1;
-  const go = () => { try { speechSynthesis.resume(); } catch (e) { } speechSynthesis.speak(u); };
+  // On iPhone a hand-picked voice can be silently ignored, so use the system voice there.
+  if (voice && !IOS) u.voice = voice;
+  u.lang = 'en-GB';
+  u.rate = 1; u.pitch = 1; u.volume = 1;
+  if (voiceStatus) {
+    let started = false;
+    u.onstart = () => { started = true; voiceStatus('Voice is playing. If you still hear nothing, turn the volume up.'); };
+    u.onerror = e => voiceStatus('Voice error: ' + (e.error || 'unknown') + '. Voices on this phone: ' + speechSynthesis.getVoices().length + '.');
+    setTimeout(() => { if (!started) voiceStatus('The voice did not start. Voices on this phone: ' + speechSynthesis.getVoices().length + '. Try in Safari instead of the home screen icon.'); }, 2500);
+  }
+  const go = () => speechSynthesis.speak(u);
   // Safari can drop speech that starts straight after a cancel, so leave a short gap.
   if (interrupt && (speechSynthesis.speaking || speechSynthesis.pending)) { speechSynthesis.cancel(); setTimeout(go, 150); }
   else go();
@@ -159,9 +172,8 @@ function startSession(id) {
   trackingOff = false;
   S = { r, steps, i: 0, t: 0, ready: r.getReady, paused: false, last: performance.now(), anim: 0, said: {}, counter: null, total: steps.reduce((s, x) => s + x.dur, 0), elapsed: 0 };
   // warm up audio and speech inside the tap
-  audioOn();
-  beep(660, 0.05);
   say(r.id === 'morning' ? 'Good morning Francisco. Time to wake up your body. Let\'s go.' : 'Kettlebell time. Quick and strong between meetings. Let\'s go.');
+  setTimeout(() => { audioOn(); beep(660, 0.05); }, 100);
   try { navigator.wakeLock && navigator.wakeLock.request('screen').then(l => wakeLock = l).catch(() => { }); } catch (e) { }
   $('stage').classList.toggle('nocam', !settings.cam);
   $('camPanel').style.display = settings.cam ? '' : 'none';
