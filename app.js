@@ -111,7 +111,6 @@ $('testVoice').onclick = () => {
   const out = $('voiceMsg');
   out.style.display = 'block';
   out.textContent = 'Testing the voice…';
-  audioOn(); ctxA();
   const was = settings.voice; settings.voice = true;
   voiceStatus = m => { out.textContent = m; };
   say('Hi Francisco. This is your coach. If you can hear me, the voice is working.');
@@ -133,7 +132,8 @@ function pickVoice() {
 }
 if ('speechSynthesis' in window) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
 // Let sound play even when the iPhone's silent switch is on (Safari 16.4 and later).
-function audioOn() { try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { } }
+// Changing the iPhone audio session silenced the voice, so this is left as a no-op.
+function audioOn() { }
 const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 let voiceStatus = null;
 
@@ -220,7 +220,6 @@ function startSession(id) {
   trackingOff = false;
   S = { r, steps, i: 0, t: 0, ready: r.getReady, paused: false, last: performance.now(), anim: 0, said: {}, counter: null, total: steps.reduce((s, x) => s + x.dur, 0), elapsed: 0 };
   // warm up audio and speech inside the tap
-  audioOn(); ctxA();
   say(r.id === 'morning' ? 'Good morning Francisco. Time to wake up your body. Let\'s go.' : 'Kettlebell time. Quick and strong between meetings. Let\'s go.');
   setTimeout(() => { audioOn(); beep(660, 0.05); }, 100);
   try { navigator.wakeLock && navigator.wakeLock.request('screen').then(l => wakeLock = l).catch(() => { }); } catch (e) { }
