@@ -93,92 +93,71 @@ function frameFor(w, h, ext) {
   return { s, ox: w / 2, oy };
 }
 
-function drawFigure(ctx, w, h, pose, colors, ext, keep) {
+function drawFigure(ctx, w, h, pose, colors, ext, keep, ghost) {
   const pts = solve(pose);
   const { s, ox, oy } = frameFor(w, h, ext);
   const X = p => [ox + p[0] * s, oy + p[1] * s];
   if (!keep) ctx.clearRect(0, 0, w, h);
+  drawSkeleton(ctx, pts, X, s, pose, colors, !!ghost);
+}
 
-  // floor shadow
-  ctx.fillStyle = colors.shadow;
-  ctx.beginPath();
-  ctx.ellipse(ox, oy + 4, s * 0.2, s * 0.025, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  const seg = (a, b, wd, col) => {
-    const A = X(a), B = X(b);
-    ctx.strokeStyle = col; ctx.lineWidth = wd * s; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); ctx.stroke();
+// Skeleton drawn in the same style as the camera overlay (white bones, coral joints),
+// so the coach and your own outline can be compared directly.
+function drawSkeleton(ctx, pts, X, s, pose, colors, ghost) {
+  const side = pose.view === 'side';
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  if (!ghost && colors.floor) {
+    const g = X([0, 0.004]);
+    ctx.strokeStyle = colors.floor; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(g[0] - s * 0.55, g[1]); ctx.lineTo(g[0] + s * 0.55, g[1]); ctx.stroke();
+  }
+  const line = (list, wd, col) => {
+    ctx.strokeStyle = col; ctx.lineWidth = Math.max(2, wd * s);
+    ctx.beginPath(); list.map(X).forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.stroke();
   };
-  const limbArm = (S, E, W, col) => { seg(S, E, 0.052, col); seg(E, W, 0.045, col); };
-  const limbLeg = (H, K, F, col) => {
-    seg(H, K, 0.075, col); seg(K, F, 0.058, col);
-    const Fp = X(F);
-    ctx.fillStyle = col;
-    ctx.beginPath();
-    const dir = pose.view === 'side' ? 1 : (F[0] < 0 ? -1 : 1);
-    ctx.ellipse(Fp[0] + dir * s * 0.025, Fp[1] + s * 0.004, s * 0.045, s * 0.022, 0, 0, Math.PI * 2);
-    ctx.fill();
+  const dot = (p, col, r) => { const q = X(p); ctx.fillStyle = col; ctx.beginPath(); ctx.arc(q[0], q[1], Math.max(2.5, r * s), 0, Math.PI * 2); ctx.fill(); };
+  const face = side ? 1 : 0;
+  const foot = (K, F) => {
+    const dir = side ? 1 : (F[0] < 0 ? -0.6 : 0.6);
+    return [F, [F[0] + dir * 0.07, F[1] + 0.003]];
   };
-  const bell = (p) => {
-    const C = X([p[0], p[1] + 0.06]);
-    const r = s * 0.052;
-    ctx.fillStyle = colors.bell;
-    ctx.beginPath(); ctx.arc(C[0], C[1], r, 0, Math.PI * 2); ctx.fill();
+  const limb = (S, E, W, col, wd) => line([S, E, W], wd, col);
+  const leg = (H, K, F, col) => { line([H, K, F], 0.05, col); line(foot(K, F), 0.035, col); };
+  const far = side ? colors.bodyFar : colors.body;
+  const bellPos = pose.bell === 'both' ? [(pts.Wl[0] + pts.Wr[0]) / 2, (pts.Wl[1] + pts.Wr[1]) / 2] : pose.bell === 'L' ? pts.Wl : pose.bell === 'R' ? pts.Wr : null;
+  const bell = p => {
+    const C = X([p[0], p[1] + 0.06]), r = s * 0.052;
+    ctx.fillStyle = colors.bell; ctx.beginPath(); ctx.arc(C[0], C[1], r, 0, Math.PI * 2); ctx.fill();
     ctx.strokeStyle = colors.bell; ctx.lineWidth = s * 0.016;
     ctx.beginPath(); ctx.arc(C[0], C[1] - r * 0.95, r * 0.55, Math.PI * 1.05, Math.PI * 1.95); ctx.stroke();
-    ctx.fillStyle = colors.bellShine;
-    ctx.beginPath(); ctx.arc(C[0] - r * 0.35, C[1] - r * 0.2, r * 0.22, 0, Math.PI * 2); ctx.fill();
+    if (!ghost) { ctx.fillStyle = colors.bellShine; ctx.beginPath(); ctx.arc(C[0] - r * 0.35, C[1] - r * 0.2, r * 0.22, 0, Math.PI * 2); ctx.fill(); }
   };
-  const bellPos = () => {
-    if (pose.bell === 'both') return [(pts.Wl[0] + pts.Wr[0]) / 2, (pts.Wl[1] + pts.Wr[1]) / 2];
-    if (pose.bell === 'L') return pts.Wl;
-    if (pose.bell === 'R') return pts.Wr;
-    return null;
-  };
-  const bp = bellPos();
-
-  const side = pose.view === 'side';
-  const far = side ? colors.bodyFar : colors.body;
-  // far limbs first in side view
-  if (side) {
-    limbLeg(pts.Hl, pts.Kl, pts.Fl, far);
-    limbArm(pts.Sl, pts.El, pts.Wl, far);
-  } else {
-    limbLeg(pts.Hl, pts.Kl, pts.Fl, colors.body);
-  }
-  limbLeg(pts.Hr, pts.Kr, pts.Fr, colors.body);
-  if (bp && pose.bellBehind) bell(bp);
-
-  // torso
-  ctx.fillStyle = colors.torso; ctx.strokeStyle = colors.torso;
-  ctx.lineJoin = 'round'; ctx.lineWidth = (side ? 0.11 : 0.05) * s;
-  const poly = [pts.Sl, pts.Sr, pts.Hr, pts.Hl].map(X);
-  ctx.beginPath(); poly.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.closePath();
-  ctx.fill(); ctx.stroke();
-  // shorts
-  ctx.fillStyle = colors.shorts; ctx.strokeStyle = colors.shorts;
-  ctx.lineWidth = (side ? 0.1 : 0.06) * s;
-  const mid = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k];
-  const sp = [mid(pts.Hl, pts.Sl, 0.12), mid(pts.Hr, pts.Sr, 0.12), mid(pts.Hr, pts.Kr, 0.4), mid(pts.Hl, pts.Kl, 0.4)].map(X);
-  ctx.beginPath(); sp.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.closePath();
-  ctx.fill(); ctx.stroke();
-
-  // neck and head
-  seg(pts.N, add(pts.N, dirUp(pose.h), L.neck + 0.02), 0.05, colors.body);
+  // far side first
+  leg(pts.Hl, pts.Kl, pts.Fl, far);
+  limb(pts.Sl, pts.El, pts.Wl, far, 0.045);
+  if (bellPos && pose.bellBehind) bell(bellPos);
+  // spine, shoulders and hips
+  line([pts.P0, pts.M, pts.N], 0.06, colors.body);
+  line([pts.Sl, pts.Sr], 0.045, colors.body);
+  line([pts.Hl, pts.Hr], 0.045, colors.body);
+  line([pts.N, pts.head], 0.04, colors.body);
   const Hc = X(pts.head);
-  ctx.fillStyle = colors.body;
-  ctx.beginPath(); ctx.arc(Hc[0], Hc[1], L.headR * s, 0, Math.PI * 2); ctx.fill();
-  // hair cap
-  ctx.fillStyle = colors.hair;
-  ctx.beginPath();
-  const ha = rad(pose.h);
-  ctx.arc(Hc[0], Hc[1], L.headR * s * 1.02, Math.PI + ha - (side ? 0.5 : 0.15), 2 * Math.PI + ha + (side ? -0.25 : 0.15));
-  ctx.fill();
-
-  if (!side) limbArm(pts.Sl, pts.El, pts.Wl, colors.body);
-  limbArm(pts.Sr, pts.Er, pts.Wr, colors.body);
-  if (bp && !pose.bellBehind) bell(bp);
+  ctx.fillStyle = colors.body; ctx.beginPath(); ctx.arc(Hc[0], Hc[1], L.headR * s, 0, Math.PI * 2); ctx.fill();
+  if (side && !ghost) {          // nose shows which way the figure faces
+    const a = rad(pose.h + 90);
+    const n0 = X(add(pts.head, dirUp(pose.h + 90), L.headR * 0.7)), n1 = X(add(pts.head, dirUp(pose.h + 90), L.headR * 1.25));
+    ctx.strokeStyle = colors.body; ctx.lineWidth = Math.max(2, s * 0.03);
+    ctx.beginPath(); ctx.moveTo(n0[0], n0[1]); ctx.lineTo(n1[0], n1[1]); ctx.stroke();
+  }
+  // near side
+  leg(pts.Hr, pts.Kr, pts.Fr, colors.body);
+  limb(pts.Sr, pts.Er, pts.Wr, colors.body, 0.045);
+  if (bellPos && !pose.bellBehind) bell(bellPos);
+  if (!ghost) {
+    const jc = colors.joint || '#ff5a36';
+    [pts.Sl, pts.El, pts.Wl, pts.Hl, pts.Kl, pts.Fl].forEach(p => dot(p, side ? colors.jointFar || jc : jc, 0.022));
+    [pts.Sr, pts.Er, pts.Wr, pts.Hr, pts.Kr, pts.Fr].forEach(p => dot(p, jc, 0.022));
+  }
 }
 
 // Coach view: faint outlines of the key positions, the path of the hands
@@ -188,7 +167,7 @@ function drawCoach(ctx, w, h, ex, time, mirrored, colors) {
   ctx.clearRect(0, 0, w, h);
   const ghost = Object.assign({}, colors, { body: colors.ghost, bodyFar: colors.ghost, torso: colors.ghost, shorts: colors.ghost, hair: colors.ghost, bell: colors.ghost, bellShine: colors.ghost, shadow: 'rgba(0,0,0,0)' });
   ctx.save(); ctx.globalAlpha = 0.5;
-  ex.keys.forEach(k => drawFigure(ctx, w, h, mirrored ? mirrorPose(k) : k, ghost, ext, true));
+  ex.keys.forEach(k => drawFigure(ctx, w, h, mirrored ? mirrorPose(k) : k, ghost, ext, true, true));
   ctx.restore();
   // movement path
   const { s, ox, oy } = frameFor(w, h, ext);

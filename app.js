@@ -1,7 +1,7 @@
-import { startCamera, stopCamera, RepCounter } from './pose.js';
+import { startCamera, stopCamera, RepCounter, setDrawHook } from './pose.js';
 
 const $ = id => document.getElementById(id);
-const COLORS = { body: '#f1e4d3', bodyFar: '#b8a994', torso: '#ff5a36', shorts: '#3a342d', hair: '#3a2a20', bell: '#55585e', bellShine: '#8f949b', shadow: 'rgba(0,0,0,.35)', ghost: 'rgba(241,228,211,.16)', path: 'rgba(255,90,54,.75)' };
+const COLORS = { body: '#f6efe6', bodyFar: '#8f857a', torso: '#ff5a36', shorts: '#3a342d', hair: '#3a2a20', bell: '#55585e', bellShine: '#8f949b', shadow: 'rgba(0,0,0,.35)', ghost: 'rgba(241,228,211,.16)', path: 'rgba(255,90,54,.75)', joint: '#ff5a36', jointFar: '#a8462e', floor: 'rgba(246,239,230,.25)' };
 const QUOTES = [
   'Ten minutes now, a better day all day.',
   'Small moves, every day. That is the whole secret.',
@@ -107,7 +107,38 @@ function beep(f = 880, d = 0.12) {
 }
 
 // ---------- session engine ----------
-let S = null, wakeLock = null, trackingOff = false;
+let S = null, wakeLock = null, trackingOff = false, form = null, formEma = null;
+const SEG_BONES = { torso: ['hip', 'sho'], uaL: [11, 13], faL: [13, 15], uaR: [12, 14], faR: [14, 16], thL: [23, 25], shL: [25, 27], thR: [24, 26], shR: [26, 28] };
+const errColor = e => e == null ? 'rgba(255,255,255,.85)' : e < 20 ? '#7fd18b' : e < 35 ? '#ffc247' : '#ff5a36';
+setDrawHook((ctx, lm, P, w, h) => {
+  if (!S || !form) return false;
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  // target outline from the coach, drawn on you
+  const T = form.target;
+  ctx.strokeStyle = 'rgba(255,255,255,.38)'; ctx.lineWidth = 10;
+  [[T.P0, T.M, T.N], [T.Sl, T.Sr], [T.Hl, T.Hr], [T.Sl, T.El, T.Wl], [T.Sr, T.Er, T.Wr], [T.Hl, T.Kl, T.Fl], [T.Hr, T.Kr, T.Fr]].forEach(l => {
+    ctx.beginPath(); l.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.stroke();
+  });
+  // you, coloured by how close each part is: green good, amber close, coral off
+  const pt = k => k === 'hip' ? [(P(lm[23])[0] + P(lm[24])[0]) / 2, (P(lm[23])[1] + P(lm[24])[1]) / 2] : k === 'sho' ? [(P(lm[11])[0] + P(lm[12])[0]) / 2, (P(lm[11])[1] + P(lm[12])[1]) / 2] : P(lm[k]);
+  const vis = k => k === 'hip' ? lm[23].visibility > 0.4 && lm[24].visibility > 0.4 : k === 'sho' ? lm[11].visibility > 0.4 && lm[12].visibility > 0.4 : lm[k].visibility > 0.4;
+  ctx.lineWidth = 5;
+  for (const n in SEG_BONES) {
+    const [a, b] = SEG_BONES[n]; if (!vis(a) || !vis(b)) continue;
+    const A = pt(a), B = pt(b);
+    ctx.strokeStyle = errColor(form.errs[n]);
+    ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); ctx.stroke();
+  }
+  ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = 3;
+  [[11, 12], [23, 24]].forEach(([a, b]) => { if (!vis(a) || !vis(b)) return; const A = P(lm[a]), B = P(lm[b]); ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); ctx.stroke(); });
+  return true;
+});
+function overlayMapper() {
+  const v = $('video'), c = $('overlay'); const w = c.clientWidth, h = c.clientHeight;
+  const vw = v.videoWidth || 640, vh = v.videoHeight || 480, sc = Math.max(w / vw, h / vh);
+  const dx = (w - vw * sc) / 2, dy = (h - vh * sc) / 2;
+  return p => [w - (dx + p.x * vw * sc), dy + p.y * vh * sc];
+}
 const RING = 333;
 
 function startSession(id) {
@@ -140,6 +171,13 @@ function enterStep() {
   const st = curStep();
   const shown = EX[st.phase === 'work' ? st.id : nextWork(S.i + 1).id];
   $('stage').classList.toggle('stack', !!shown.keys[0].floor);
+  const view = shown.keys[0].floor ? 'floor' : shown.keys[0].view;
+  $('coachTag').textContent = view === 'front' ? 'Coach · facing you' : view === 'floor' ? 'Coach · on the floor' : 'Coach · side-on';
+  formEma = null;
+  if (S.i === 0 || (S.lastView && S.lastView !== view)) {
+    S.viewCue = view === 'front' ? (S.i === 0 ? 'Face the phone.' : 'Turn to face the phone.') : view === 'floor' ? 'Get on the floor, side-on to the phone.' : 'Turn side-on to the phone.';
+  } else S.viewCue = '';
+  S.lastView = view;
   S.t = 0; S.said = {};
   const prev = S.steps[S.i - 1];
   S.ready = st.phase === 'work' && !(prev && prev.phase === 'rest') ? (st.ready || S.r.getReady) : 0;
@@ -156,10 +194,10 @@ function enterStep() {
     $('next').textContent = nx ? 'Next: ' + EX[nx.id].name : 'Last one. Finish strong.';
     if (S.ready) {
       $('countdown').classList.add('on'); $('cdT').textContent = 'Get ready';
-      say((S.i === 0 ? 'First up, ' : 'Next, ') + ex.name + '. ' + ex.cues[0]);
+      say((S.i === 0 ? 'First up, ' : 'Next, ') + ex.name + '. ' + (S.viewCue ? S.viewCue + ' ' : '') + ex.cues[0]);
     } else {
       $('countdown').classList.remove('on');
-      say(ex.name + '. Go!', true);
+      say(ex.name + '. ' + (S.viewCue ? S.viewCue + ' ' : '') + 'Go!', true);
     }
   } else {
     const nx = nextWork(S.i + 1);
@@ -171,14 +209,33 @@ function enterStep() {
     $('exname').textContent = 'Breathe';
     $('cue').textContent = 'Next up: ' + ex.name + '. ' + ex.cues[0];
     $('next').textContent = '';
-    say('Rest. Next up, ' + ex.name + '. ' + ex.cues[0], true);
+    say('Rest. Next up, ' + ex.name + '. ' + (S.viewCue ? S.viewCue + ' ' : '') + ex.cues[0], true);
   }
 }
 function workIndex() { let n = 0; for (let j = 0; j < S.i; j++) if (S.steps[j].phase === 'work') n++; return n; }
 function workCount() { return S.steps.filter(s => s.phase === 'work').length; }
 
 function onPose(lm, t) {
-  if (!S || S.paused || !S.counter || S.ready > 0) return;
+  if (!S) return;
+  const st0 = curStep();
+  const exF = st0 && EX[st0.phase === 'work' ? st0.id : (nextWork(S.i + 1) || st0).id];
+  form = null;
+  if (lm && exF && st0.phase === 'work') {
+    const mirrored = exF.sides && S.t > st0.dur / 2;
+    form = formCheck(exF, mirrored, lm, overlayMapper());
+  }
+  const badge = $('formBadge');
+  if (form && S.ready <= 0) {
+    formEma = formEma == null ? form.score : formEma + (form.score - formEma) * 0.25;
+    const sc = Math.round(formEma);
+    badge.style.display = 'block';
+    badge.textContent = 'Form ' + sc + '%';
+    badge.style.background = sc >= 75 ? '#2f6b3a' : sc >= 55 ? '#8a6414' : '#9b2f17';
+    const tipEl = $('formTip');
+    if (sc < 70 && form.worst) { tipEl.textContent = FORM_TIPS[form.worst][exF.keys[0].view === 'side' ? 'side' : 'front']; tipEl.style.display = 'block'; }
+    else tipEl.style.display = 'none';
+  } else { badge.style.display = 'none'; $('formTip').style.display = 'none'; }
+  if (S.paused || !S.counter || S.ready > 0) return;
   const st = curStep(); if (!st || st.phase !== 'work') return;
   const n = S.counter.push(lm, t);
   $('reps').innerHTML = n + '<small>reps</small>';
@@ -293,5 +350,6 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && S && wakeLock === null) { try { navigator.wakeLock.request('screen').then(l => wakeLock = l); } catch (e) { } }
 });
 
+window.__moveTest = { onPose: (lm, t) => onPose(lm, t), state: () => S };
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => { });
 show('home');

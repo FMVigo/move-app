@@ -5,7 +5,9 @@ const MODEL = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/p
 const BONES = [[11, 12], [11, 13], [13, 15], [12, 14], [14, 16], [11, 23], [12, 24], [23, 24], [23, 25], [25, 27], [24, 26], [26, 28]];
 
 let landmarker = null, stream = null, running = false, lastTs = -1;
-let videoEl, canvasEl, onFrame;
+let videoEl, canvasEl, onFrame, drawHook = null;
+export function setDrawHook(fn) { drawHook = fn; }
+export function _testDraw(lm, video, canvas) { videoEl = video; canvasEl = canvas; draw(lm); }
 
 // Returns true when body tracking works, false when only the mirror works.
 export async function startCamera(video, canvas, frameCb, onVideo) {
@@ -45,8 +47,8 @@ function loop() {
       lastTs = ts;
       let lm = null;
       try { const r = landmarker.detectForVideo(v, ts); lm = r.landmarks && r.landmarks[0]; } catch (e) { }
-      draw(lm);
-      onFrame && onFrame(lm, ts / 1000);
+      try { onFrame && onFrame(lm, ts / 1000); } catch (e) { console.warn(e); }
+      try { draw(lm); } catch (e) { console.warn(e); }
     }
   }
   requestAnimationFrame(loop);
@@ -65,6 +67,7 @@ function draw(lm) {
   const sc = Math.max(w / vw, h / vh);
   const dx = (w - vw * sc) / 2, dy = (h - vh * sc) / 2;
   const P = p => [w - (dx + p.x * vw * sc), dy + p.y * vh * sc];
+  if (drawHook && drawHook(ctx, lm, P, w, h)) return;
   ctx.lineCap = 'round';
   ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 4;
   BONES.forEach(([a, b]) => {

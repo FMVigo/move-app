@@ -50,6 +50,7 @@ h1,h2,.num{font-family:'Barlow Condensed',Barlow,sans-serif;font-weight:800;line
 .card h2{font-size:27px}
 .card p{margin:2px 0 0;color:var(--mute);font-size:14px}
 .card .meta{font-family:'Barlow Condensed',Barlow,system-ui,sans-serif;font-weight:600;color:var(--acc);font-size:16px;letter-spacing:.3px}
+.card>div{padding-right:28px}
 .card .tick{position:absolute;top:14px;right:16px;width:30px;height:30px;border-radius:50%;border:2px solid var(--bg3);display:grid;place-items:center;font-weight:700}
 .card.done .tick{background:var(--ok);border-color:var(--ok);color:#10220f}
 .settings{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
@@ -75,6 +76,8 @@ h1,h2,.num{font-family:'Barlow Condensed',Barlow,sans-serif;font-weight:800;line
 .tag{position:absolute;top:10px;left:10px;background:rgba(0,0,0,.45);padding:3px 10px;border-radius:999px;font-size:13px;z-index:2}
 .reps{position:absolute;bottom:10px;right:12px;font-family:'Barlow Condensed',Barlow,system-ui,sans-serif;font-weight:800;font-size:54px;line-height:1;z-index:2;text-shadow:0 2px 10px rgba(0,0,0,.6)}
 .reps small{display:block;font-size:14px;font-weight:600;text-align:right;color:var(--ink)}
+.fbadge{position:absolute;top:10px;right:10px;padding:4px 12px;border-radius:999px;font-family:'Barlow Condensed',Barlow,system-ui,sans-serif;font-weight:800;font-size:20px;z-index:3;display:none}
+.ftip{position:absolute;left:10px;right:96px;bottom:10px;background:rgba(22,19,15,.85);border-radius:14px;padding:8px 10px;font-size:16px;font-weight:600;z-index:3;display:none}
 .hint{position:absolute;left:10px;right:10px;bottom:10px;background:rgba(22,19,15,.85);border-radius:14px;padding:8px 10px;font-size:14px;z-index:3;display:none}
 .camoff{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:16px;color:var(--mute);font-size:15px}
 .bottom{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center}
@@ -131,7 +134,7 @@ h1,h2,.num{font-family:'Barlow Condensed',Barlow,sans-serif;font-weight:800;line
     <button class="x" id="quit" aria-label="End session">×</button>
   </div>
   <div class="stage" id="stage">
-    <div class="panel"><span class="tag">Coach</span><canvas class="fig" id="coach"></canvas>
+    <div class="panel"><span class="tag" id="coachTag">Coach</span><canvas class="fig" id="coach"></canvas>
       <div class="overlay" id="countdown"><div><div class="num" id="cdN">5</div><div id="cdT">Get ready</div></div></div>
     </div>
     <div class="panel" id="camPanel"><span class="tag">You</span>
@@ -139,6 +142,7 @@ h1,h2,.num{font-family:'Barlow Condensed',Barlow,sans-serif;font-weight:800;line
       <div class="camoff" id="camMsg">Starting camera…</div>
       <div class="reps" id="reps">0<small>reps</small></div>
       <div class="hint" id="hint"></div>
+      <div class="fbadge" id="formBadge"></div><div class="ftip" id="formTip"></div>
     </div>
   </div>
   <div class="side">
@@ -164,6 +168,7 @@ h1,h2,.num{font-family:'Barlow Condensed',Barlow,sans-serif;font-weight:800;line
 
 <script src="exercises.js"></script>
 <script src="figure.js"></script>
+<script src="form.js"></script>
 <script type="module" src="app.js"></script>
 </body>
 </html>
