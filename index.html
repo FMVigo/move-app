@@ -56,6 +56,11 @@ h1,h2,.num{font-family:'Barlow Condensed',Barlow,sans-serif;font-weight:800;line
 .settings{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
 .chip{background:var(--bg2);border-radius:999px;padding:10px 16px;min-height:44px;font-size:15px}
 .chip[aria-pressed=true]{background:var(--ink);color:var(--bg)}
+.vpanel{background:var(--bg2);border-radius:18px;padding:14px;margin-top:10px}
+.vpanel p{margin:0 0 10px;color:var(--mute);font-size:15px}
+.vrow{display:block;width:100%;text-align:left;padding:12px 14px;min-height:48px;border-radius:12px;background:var(--bg3);margin-bottom:6px;font-size:16px}
+.vrow small{display:block;color:var(--mute);font-size:13px}
+.vrow.on{background:var(--acc);color:#fff}.vrow.on small{color:#fff}
 .src{margin-top:18px;color:var(--mute);font-size:13px}
 .src a{color:var(--mute)}
 
@@ -125,6 +130,11 @@ h1,h2,.num{font-family:'Barlow Condensed',Barlow,sans-serif;font-weight:800;line
     <button class="chip" id="setCam" aria-pressed="true">Camera</button>
     <button class="chip" id="setKb">Kettlebell 16 kg</button>
     <button class="chip" id="testVoice">Test voice</button>
+    <button class="chip" id="setVoiceName">Coach voice: default</button>
+  </div>
+  <div id="voicePanel" class="vpanel" style="display:none">
+    <p>Tap a voice to hear it. Voices marked natural sound most human. To get them, on your iPhone go to Settings, Accessibility, Spoken Content, Voices, English, and download a Premium voice such as Ava, Zoe or Serena. Then reopen this app.</p>
+    <div id="voiceList"></div>
   </div>
   <p class="src" id="voiceMsg" style="display:none;color:var(--ink);font-size:15px"></p>
   <p class="src">Moves inspired by your saved Gym posts: <span id="srcLinks"></span>. Stop any move that causes sharp pain.</p>

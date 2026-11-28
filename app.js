@@ -58,6 +58,7 @@ function renderHome() {
   $('setVoice').setAttribute('aria-pressed', settings.voice);
   $('setCam').setAttribute('aria-pressed', settings.cam);
   $('setKb').textContent = 'Kettlebell ' + settings.kb + ' kg';
+  $('setVoiceName').textContent = 'Coach voice: ' + (settings.voiceName ? settings.voiceName.replace(/ \(.*\)/, '') : 'default');
   const links = [['lymph flow', IG.lymph], ['Qi Gong flow', IG.qigong], ['kettlebell 9 grid', IG.kb9], ['kettlebell circuit', IG.kbcircuit], ['mobility', IG.mobility]];
   $('srcLinks').innerHTML = links.map(([t, u]) => `<a href="${u}" target="_blank" rel="noopener">${t}</a>`).join(', ');
 }
@@ -74,11 +75,43 @@ function animateHome(ts) {
 }
 $('setVoice').onclick = () => { settings.voice = !settings.voice; store.set('settings', settings); renderHome(); };
 $('setCam').onclick = () => { settings.cam = !settings.cam; store.set('settings', settings); renderHome(); };
+// ---------- voice picker ----------
+const NICE = ['Ava', 'Zoe', 'Serena', 'Samantha', 'Allison', 'Susan', 'Kate', 'Karen', 'Moira', 'Tessa', 'Fiona', 'Martha', 'Stephanie', 'Nicky'];
+function voiceRank(v) {
+  let r = 0;
+  if (/premium/i.test(v.name)) r -= 20; else if (/enhanced/i.test(v.name)) r -= 10;
+  const i = NICE.findIndex(n => v.name.includes(n)); if (i >= 0) r -= 8 - i * 0.1;
+  if (/en-GB/.test(v.lang)) r -= 0.5;
+  return r;
+}
+function renderVoices() {
+  const box = $('voiceList');
+  const vs = ('speechSynthesis' in window ? speechSynthesis.getVoices() : []).filter(v => /^en/i.test(v.lang)).sort((a, b) => voiceRank(a) - voiceRank(b));
+  const cur = settings.voiceName || '';
+  box.innerHTML = `<button class="vrow ${cur ? '' : 'on'}" data-v="">Phone default voice</button>` +
+    vs.map(v => `<button class="vrow ${v.name === cur ? 'on' : ''}" data-v="${v.name.replace(/"/g, '&quot;')}">${v.name}<small>${v.lang}${/premium|enhanced/i.test(v.name) ? ' · natural' : ''}</small></button>`).join('') +
+    (vs.length ? '' : '<p>No voices found yet. Close and reopen the app, then try again.</p>');
+  box.querySelectorAll('.vrow').forEach(b => b.onclick = () => {
+    settings.voiceName = b.dataset.v; store.set('settings', settings);
+    renderVoices();
+    const was = settings.voice; settings.voice = true;
+    say('Hi Francisco. I am your coach. Ready when you are.', true);
+    settings.voice = was;
+    $('setVoiceName').textContent = 'Coach voice: ' + (settings.voiceName ? settings.voiceName.replace(/ \(.*\)/, '') : 'default');
+  });
+}
+$('setVoiceName').onclick = () => {
+  const p = $('voicePanel'); const open = p.style.display !== 'block';
+  p.style.display = open ? 'block' : 'none';
+  if (open) renderVoices();
+};
+if ('speechSynthesis' in window) speechSynthesis.addEventListener && speechSynthesis.addEventListener('voiceschanged', () => { if ($('voicePanel').style.display === 'block') renderVoices(); });
+
 $('testVoice').onclick = () => {
   const out = $('voiceMsg');
   out.style.display = 'block';
-  if (!('speechSynthesis' in window)) { out.textContent = 'This browser has no voice support.'; return; }
   out.textContent = 'Testing the voice…';
+  audioOn(); ctxA();
   const was = settings.voice; settings.voice = true;
   voiceStatus = m => { out.textContent = m; };
   say('Hi Francisco. This is your coach. If you can hear me, the voice is working.');
@@ -103,21 +136,36 @@ if ('speechSynthesis' in window) { pickVoice(); speechSynthesis.onvoiceschanged 
 function audioOn() { try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { } }
 const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 let voiceStatus = null;
+
+function stopVoice() { try { 'speechSynthesis' in window && speechSynthesis.cancel(); } catch (e) { } }
+function ctxA() {
+  actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+  if (actx.state === 'suspended') actx.resume();
+  return actx;
+}
 function say(text, interrupt) {
-  if (!settings.voice || !('speechSynthesis' in window)) return;
+  if (!settings.voice) return;
+  speakDevice(text, interrupt);
+}
+// Voice chosen on the home screen, or the phone's default voice.
+function chosenVoice() {
+  if (!settings.voiceName || !('speechSynthesis' in window)) return null;
+  return speechSynthesis.getVoices().find(v => v.name === settings.voiceName) || null;
+}
+function speakDevice(text, interrupt) {
+  if (!('speechSynthesis' in window)) return;
   const u = new SpeechSynthesisUtterance(text);
-  // On iPhone a hand-picked voice can be silently ignored, so use the system voice there.
-  if (voice && !IOS) u.voice = voice;
-  u.lang = 'en-GB';
-  u.rate = 1; u.pitch = 1; u.volume = 1;
+  const cv = chosenVoice();
+  if (cv) { u.voice = cv; u.lang = cv.lang; }
+  else { if (voice && !IOS) u.voice = voice; u.lang = 'en-GB'; }
+  u.rate = 0.98; u.pitch = 1; u.volume = 1;
   if (voiceStatus) {
     let started = false;
-    u.onstart = () => { started = true; voiceStatus('Voice is playing. If you still hear nothing, turn the volume up.'); };
-    u.onerror = e => voiceStatus('Voice error: ' + (e.error || 'unknown') + '. Voices on this phone: ' + speechSynthesis.getVoices().length + '.');
-    setTimeout(() => { if (!started) voiceStatus('The voice did not start. Voices on this phone: ' + speechSynthesis.getVoices().length + '. Try in Safari instead of the home screen icon.'); }, 2500);
+    u.onstart = () => { started = true; voiceStatus('Voice is playing. If you hear nothing, turn the volume up.'); };
+    u.onerror = e => voiceStatus('Voice error: ' + (e.error || 'unknown') + '.');
+    setTimeout(() => { if (!started) voiceStatus('The voice did not start.'); }, 2500);
   }
   const go = () => speechSynthesis.speak(u);
-  // Safari can drop speech that starts straight after a cancel, so leave a short gap.
   if (interrupt && (speechSynthesis.speaking || speechSynthesis.pending)) { speechSynthesis.cancel(); setTimeout(go, 150); }
   else go();
 }
@@ -172,6 +220,7 @@ function startSession(id) {
   trackingOff = false;
   S = { r, steps, i: 0, t: 0, ready: r.getReady, paused: false, last: performance.now(), anim: 0, said: {}, counter: null, total: steps.reduce((s, x) => s + x.dur, 0), elapsed: 0 };
   // warm up audio and speech inside the tap
+  audioOn(); ctxA();
   say(r.id === 'morning' ? 'Good morning Francisco. Time to wake up your body. Let\'s go.' : 'Kettlebell time. Quick and strong between meetings. Let\'s go.');
   setTimeout(() => { audioOn(); beep(660, 0.05); }, 100);
   try { navigator.wakeLock && navigator.wakeLock.request('screen').then(l => wakeLock = l).catch(() => { }); } catch (e) { }
@@ -352,7 +401,7 @@ function quit() {
   if (!S) return show('home');
   cancelAnimationFrame(S.anim); stopCamera();
   try { wakeLock && wakeLock.release(); } catch (e) { }
-  if ('speechSynthesis' in window) speechSynthesis.cancel();
+  stopVoice();
   S = null; show('home');
 }
 
@@ -360,7 +409,7 @@ $('pause').onclick = () => {
   if (!S) return;
   S.paused = !S.paused;
   $('pause').textContent = S.paused ? 'Resume' : 'Pause';
-  if (S.paused) { speechSynthesis && speechSynthesis.cancel(); } else say('Back to it.');
+  if (S.paused) { stopVoice(); } else say('Back to it.');
 };
 $('skip').onclick = () => { if (!S) return; cancelAnimationFrame(S.anim); advance(1); };
 $('back').onclick = () => {
